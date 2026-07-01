@@ -61,6 +61,10 @@
         .inv-total-row td { font-size: 18px; font-weight: bold; }
         .inv-footer { margin-top: 50px; display: flex; justify-content: space-between; font-size: 14px; }
         .signature-line { border-top: 1px dashed #000; width: 180px; margin-top: 40px; text-align: center; padding-top: 5px; }
+       .inv-payment { margin-top: 25px; padding: 15px; border: 1px solid #000; display: flex; align-items: center; gap: 20px; }
+.inv-payment-title { font-weight: bold; font-size: 16px; margin-bottom: 8px; }
+.qr-code { width: 130px; height: 130px; object-fit: contain; }
+.bank-info { font-size: 14px; line-height: 1.8; }
     }
 </style>
 </head>
@@ -229,7 +233,16 @@
             </tr>
         </tbody>
     </table>
-    <div class="inv-footer">
+    <div class="inv-payment">
+    <img src="qr.png" alt="QR ชำระเงิน" class="qr-code">
+    <div class="bank-info">
+        <div class="inv-payment-title">ช่องทางการชำระเงิน</div>
+        <div>ธนาคาร: กสิกรไทย</div>
+        <div>ชื่อบัญชี: นายชยางกูร ทรายขาว</div>
+        <div>เลขที่บัญชี: 001-1-98520-3</div>
+    </div>
+</div>
+   <div class="inv-footer">
         <div>
             <div class="signature-line">ลายเซ็นผู้เช่า</div>
         </div>
