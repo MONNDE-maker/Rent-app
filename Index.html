@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>โปรแกรมคิดค่าเช่าบ้าน & ออกใบแจ้งหนี้</title>
+<style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', 'Tahoma', 'Sarabun', sans-serif; background: linear-gradient(135deg, #e0f2f1, #e8eaf6); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 30px 15px; margin: 0; }
+    .container { width: 100%; max-width: 900px; display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 25px; flex: 1; min-width: 350px; max-width: 500px; }
+    h1 { text-align: center; font-size: 22px; color: #2c3e50; margin: 0 0 4px 0; }
+    .sub { text-align: center; color: #888; font-size: 13px; margin-bottom: 20px; }
+    .section { margin-bottom: 15px; padding: 12px; border-radius: 10px; background: #fafafa; border: 1px solid #eee; }
+    .section-title { font-weight: 600; color: #34495e; margin-bottom: 10px; font-size: 14px; display: flex; justify-content: space-between; }
+    .row { display: flex; gap: 10px; margin-bottom: 8px; }
+    .field { flex: 1; }
+    label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; font-weight: 500; }
+    input { width: 100%; padding: 9px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; transition: border 0.2s; font-family: inherit; }
+    input:focus { border-color: #26a69a; }
+    .used-line { font-size: 12.5px; color: #26a69a; font-weight: 600; margin-top: 4px; }
+    .result-box { margin-top: 15px; background: linear-gradient(135deg, #26a69a, #00897b); border-radius: 12px; padding: 16px; color: #fff; }
+    .result-line { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; }
+    .result-total { display: flex; justify-content: space-between; font-size: 19px; font-weight: 700; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.4); }
+    .action-buttons { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
+    .btn { flex: 1; min-width: 100px; padding: 10px; border: none; border-radius: 8px; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .btn-clear { background: #ffeaa7; color: #d63031; }
+    .btn-save { background: #00b894; color: white; }
+    .btn-print { background: #0984e3; color: white; }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 999; }
+    .toast.show { opacity: 1; }
+
+    /* History Table */
+    .history-box { width: 100%; max-width: 900px; background: white; border-radius: 16px; padding: 20px; margin-top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    .history-title { font-size: 16px; font-weight: 600; color: #2c3e50; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .history-note { font-size: 11.5px; color: #aaa; font-weight: 400; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th, td { padding: 10px; border-bottom: 1px solid #eee; }
+    th { background-color: #f8f9fa; color: #555; }
+    tr:hover { background-color: #f1f2f6; }
+    .row-click { cursor: pointer; }
+    .btn-del { background: #ff7675; color: white; border: none; padding: 4px 9px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .btn-print-row { background: #0984e3; color: white; border: none; padding: 4px 9px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 5px; }
+    .empty-row { text-align: center; color: #aaa; padding: 20px; }
+
+    /* Print Preview Area (Hidden on screen) */
+    #invoice-print-area { display: none; }
+
+    /* PRINT STYLES */
+    @media print {
+        body { background: white; padding: 0; margin: 0; display: block; }
+        .container, .history-box, .toast { display: none !important; }
+        #invoice-print-area { display: block !important; width: 100%; max-width: 700px; margin: 0 auto; padding: 20px; color: #000; }
+        .inv-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .inv-title { font-size: 26px; font-weight: bold; margin: 0; }
+        .inv-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 15px; }
+        .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        .inv-table th, .inv-table td { border: 1px solid #000; padding: 10px; font-size: 15px; }
+        .inv-table th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .inv-total-row td { font-size: 18px; font-weight: bold; }
+        .inv-footer { margin-top: 50px; display: flex; justify-content: space-between; font-size: 14px; }
+        .signature-line { border-top: 1px dashed #000; width: 180px; margin-top: 40px; text-align: center; padding-top: 5px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <!-- ส่วนกรอกข้อมูลและคำนวณ -->
+    <div class="card">
+        <h1>🏠 คิดค่าเช่าบ้าน & แจ้งหนี้</h1>
+        <div class="sub">จัดการระบบเช่า แยกตามรายห้องและจัดพิมพ์</div>
+
+        <!-- ข้อมูลห้องและเวลา -->
+        <div class="section" style="background: #edf2f7;">
+            <div class="section-title">📌 ข้อมูลผู้เช่า</div>
+            <div class="row">
+                <div class="field">
+                    <label>เลขห้อง / ชื่อห้อง</label>
+                    <input type="text" id="roomNo" placeholder="เช่น 101, A1" oninput="calc()">
+                </div>
+                <div class="field">
+                    <label>ประจำเดือน/ปี</label>
+                    <input type="month" id="billingMonth" oninput="calc()">
+                </div>
+            </div>
+        </div>
+
+        <!-- ไฟ -->
+        <div class="section">
+            <div class="section-title">⚡ ค่าไฟ <span>(10 บ./ยูนิต)</span></div>
+            <div class="row">
+                <div class="field">
+                    <label>เลขไฟเก่า</label>
+                    <input type="number" id="electOld" placeholder="0" oninput="calc()" min="0">
+                </div>
+                <div class="field">
+                    <label>เลขไฟใหม่</label>
+                    <input type="number" id="electNew" placeholder="0" oninput="calc()" min="0">
+                </div>
+            </div>
+            <div class="used-line" id="electUsed">ใช้ไป 0 ยูนิต = 0 บาท</div>
+        </div>
+
+        <!-- น้ำ -->
+        <div class="section">
+            <div class="section-title">💧 ค่าน้ำ <span>(20 บ./ยูนิต)</span></div>
+            <div class="row">
+                <div class="field">
+                    <label>เลขน้ำเก่า</label>
+                    <input type="number" id="waterOld" placeholder="0" oninput="calc()" min="0">
+                </div>
+                <div class="field">
+                    <label>เลขน้ำใหม่</label>
+                    <input type="number" id="waterNew" placeholder="0" oninput="calc()" min="0">
+                </div>
+            </div>
+            <div class="used-line" id="waterUsed">ใช้ไป 0 ยูนิต = 0 บาท</div>
+        </div>
+
+        <!-- ค่าเช่าอื่นๆ -->
+        <div class="section">
+            <div class="section-title">🏡 ค่าเช่า และ ค่าบริการ</div>
+            <div class="row">
+                <div class="field">
+                    <label>ค่าเช่า (บาท)</label>
+                    <input type="number" id="rent" placeholder="0" oninput="calc()" min="0">
+                </div>
+                <div class="field">
+                    <label>ค่าขยะ (บาท)</label>
+                    <input type="number" id="trash" placeholder="0" oninput="calc()" min="0">
+                </div>
+            </div>
+        </div>
+
+        <!-- สรุปยอด -->
+        <div class="result-box">
+            <div class="result-line"><span>ค่าไฟ</span><span id="rElect">0 บาท</span></div>
+            <div class="result-line"><span>ค่าน้ำ</span><span id="rWater">0 บาท</span></div>
+            <div class="result-line"><span>ค่าเช่า</span><span id="rRent">0 บาท</span></div>
+            <div class="result-line"><span>ค่าขยะ</span><span id="rTrash">0 บาท</span></div>
+            <div class="result-total"><span>รวมทั้งหมด</span><span id="rTotal">0 บาท</span></div>
+        </div>
+
+        <!-- ปุ่มควบคุม -->
+        <div class="action-buttons">
+            <button class="btn btn-clear" onclick="clearData()">ล้างค่า</button>
+            <button class="btn btn-save" onclick="saveRoomData()">บันทึกข้อมูลห้องนี้</button>
+            <button class="btn btn-print" onclick="printInvoice()">🖨️ พิมพ์ใบแจ้งหนี้</button>
+        </div>
+    </div>
+</div>
+
+<!-- ตารางบันทึกประวัติแยกตามห้อง -->
+<div class="history-box">
+    <div class="history-title">
+        <span>📊 รายการที่บันทึกไว้แยกตามห้อง</span>
+        <span class="history-note">*ข้อมูลบันทึกถาวรบน Google Sheets</span>
+    </div>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>ห้อง</th>
+                    <th>ประจำเดือน</th>
+                    <th>เลขไฟ (เก่า/ใหม่)</th>
+                    <th>เลขน้ำ (เก่า/ใหม่)</th>
+                    <th>รวมสุทธิ</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody id="historyBody">
+                <tr id="emptyRow"><td colspan="6" class="empty-row">ยังไม่มีข้อมูลที่บันทึกไว้</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ================= พื้นที่สำหรับพิมพ์ใบแจ้งหนี้ ================= -->
+<div id="invoice-print-area">
+    <div class="inv-header">
+        <div class="inv-title">ใบแจ้งหนี้ / ใบเสร็จรับเงินค่าเช่า</div>
+        <div style="margin-top: 5px; font-size: 14px; color: #555;">กรุณาชำระเงินภายในวันที่ระบุตามเงื่อนไขสัญญา</div>
+    </div>
+    <div class="inv-meta">
+        <div>
+            <strong>ห้อง / บ้านเลขที่:</strong> <span id="pRoomNo">-</span><br>
+            <strong>ประจำงวดเดือน:</strong> <span id="pMonth">-</span>
+        </div>
+        <div style="text-align: right;">
+            <strong>วันที่ออกเอกสาร:</strong> <span id="pCurrentDate">-</span>
+        </div>
+    </div>
+    <table class="inv-table">
+        <thead>
+            <tr>
+                <th style="width: 45%;">รายการ</th>
+                <th style="text-align: center;">ดัชนีมิเตอร์ (เก่า - ใหม่)</th>
+                <th style="text-align: right; width: 25%;">จำนวนเงิน (บาท)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>ค่าไฟฟ้า (<span id="pElectUnit">0</span> ยูนิต x 10 บาท)</td>
+                <td style="text-align: center;"><span id="pElectOld">0</span> - <span id="pElectNew">0</span></td>
+                <td style="text-align: right;"><span id="pElectCost">0</span></td>
+            </tr>
+            <tr>
+                <td>ค่าน้ำประปา (<span id="pWaterUnit">0</span> ยูนิต x 20 บาท)</td>
+                <td style="text-align: center;"><span id="pWaterOld">0</span> - <span id="pWaterNew">0</span></td>
+                <td style="text-align: right;"><span id="pWaterCost">0</span></td>
+            </tr>
+            <tr>
+                <td>ค่าเช่าบ้าน / ห้อง</td>
+                <td style="text-align: center;">-</td>
+                <td style="text-align: right;"><span id="pRent">0</span></td>
+            </tr>
+            <tr>
+                <td>ค่าขยะ</td>
+                <td style="text-align: center;">-</td>
+                <td style="text-align: right;"><span id="pTrash">0</span></td>
+            </tr>
+            <tr class="inv-total-row">
+                <td colspan="2" style="text-align: right;">รวมยอดชำระทั้งสิ้น</td>
+                <td style="text-align: right;"><span id="pTotal">0</span> บาท</td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="inv-footer">
+        <div>
+            <div class="signature-line">ลายเซ็นผู้เช่า</div>
+        </div>
+        <div>
+            <div class="signature-line">ลายเซ็นผู้ให้เช่า / ผู้รับเงิน</div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   🔧 ตั้งค่าตรงนี้: นำลิงก์ Web App ที่ได้จากการ Deploy
+   Google Apps Script มาแปะแทนที่ข้อความด้านล่างนี้
+   ตัวอย่าง: "https://script.google.com/macros/s/AKfycb.../exec"
+   ============================================================ */
+const SHEET_API_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
+
+let history = [];
+let isLoading = false;
+
+function isConfigured() {
+    return SHEET_API_URL && SHEET_API_URL.indexOf('PASTE_YOUR_WEB_APP_URL_HERE') === -1;
+}
+
+function num(id) {
+    const v = parseFloat(document.getElementById(id).value);
+    return isNaN(v) ? 0 : v;
+}
+
+function fmt(n) {
+    return n.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function getMonthLabel(monthValue) {
+    if (!monthValue) return '-';
+    const [y, m] = monthValue.split('-');
+    const thaiMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    const monthName = thaiMonths[parseInt(m, 10) - 1] || '';
+    const thaiYear = parseInt(y, 10) + 543;
+    return `${monthName} ${thaiYear}`;
+}
+
+function calc() {
+    const electOld = num('electOld');
+    const electNew = num('electNew');
+    const waterOld = num('waterOld');
+    const waterNew = num('waterNew');
+    const rent = num('rent');
+    const trash = num('trash');
+
+    let electUsed = electNew - electOld;
+    if (electUsed < 0) electUsed = 0;
+    let waterUsed = waterNew - waterOld;
+    if (waterUsed < 0) waterUsed = 0;
+
+    const electCost = electUsed * 10;
+    const waterCost = waterUsed * 20;
+    const total = electCost + waterCost + rent + trash;
+
+    document.getElementById('electUsed').textContent = `ใช้ไป ${electUsed} ยูนิต = ${fmt(electCost)} บาท`;
+    document.getElementById('waterUsed').textContent = `ใช้ไป ${waterUsed} ยูนิต = ${fmt(waterCost)} บาท`;
+
+    document.getElementById('rElect').textContent = fmt(electCost) + ' บาท';
+    document.getElementById('rWater').textContent = fmt(waterCost) + ' บาท';
+    document.getElementById('rRent').textContent = fmt(rent) + ' บาท';
+    document.getElementById('rTrash').textContent = fmt(trash) + ' บาท';
+    document.getElementById('rTotal').textContent = fmt(total) + ' บาท';
+
+    return { electOld, electNew, waterOld, waterNew, electUsed, waterUsed, electCost, waterCost, rent, trash, total };
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function clearData() {
+    ['roomNo','billingMonth','electOld','electNew','waterOld','waterNew','rent','trash'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    calc();
+    showToast('ล้างค่าเรียบร้อย');
+}
+
+async function saveRoomData() {
+    if (!isConfigured()) {
+        showToast('ยังไม่ได้ตั้งค่าลิงก์ Google Sheets');
+        return;
+    }
+    const roomNo = document.getElementById('roomNo').value.trim();
+    const billingMonth = document.getElementById('billingMonth').value;
+    if (!roomNo) {
+        showToast('กรุณากรอกเลขห้องก่อนบันทึก');
+        return;
+    }
+    const data = calc();
+    const record = { id: Date.now(), roomNo, billingMonth, ...data };
+
+    showToast('กำลังบันทึกลง Google Sheets...');
+    try {
+        await fetch(SHEET_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'save', record })
+        });
+        showToast(`บันทึกข้อมูลห้อง ${roomNo} เรียบร้อย`);
+        await loadHistory();
+    } catch (err) {
+        showToast('บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง');
+    }
+}
+
+async function deleteRecord(id) {
+    if (!isConfigured()) return;
+    showToast('กำลังลบ...');
+    try {
+        await fetch(SHEET_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'delete', id })
+        });
+        showToast('ลบเรียบร้อย');
+        await loadHistory();
+    } catch (err) {
+        showToast('ลบไม่สำเร็จ ลองใหม่อีกครั้ง');
+    }
+}
+
+async function loadHistory() {
+    const body = document.getElementById('historyBody');
+    if (!isConfigured()) {
+        body.innerHTML = '<tr id="emptyRow"><td colspan="6" class="empty-row">⚠️ ยังไม่ได้ตั้งค่าลิงก์ Google Sheets (แก้ตัวแปร SHEET_API_URL ในไฟล์นี้)</td></tr>';
+        return;
+    }
+    if (isLoading) return;
+    isLoading = true;
+    body.innerHTML = '<tr id="emptyRow"><td colspan="6" class="empty-row">กำลังโหลดข้อมูล...</td></tr>';
+    try {
+        const res = await fetch(SHEET_API_URL + '?action=list');
+        const json = await res.json();
+        if (json.status === 'ok') {
+            history = json.data.map(r => ({
+                id: Number(r.id),
+                roomNo: r.roomNo,
+                billingMonth: r.billingMonth,
+                electOld: Number(r.electOld) || 0,
+                electNew: Number(r.electNew) || 0,
+                waterOld: Number(r.waterOld) || 0,
+                waterNew: Number(r.waterNew) || 0,
+                electUsed: Number(r.electUsed) || 0,
+                waterUsed: Number(r.waterUsed) || 0,
+                electCost: Number(r.electCost) || 0,
+                waterCost: Number(r.waterCost) || 0,
+                rent: Number(r.rent) || 0,
+                trash: Number(r.trash) || 0,
+                total: Number(r.total) || 0
+            })).reverse();
+            renderHistory();
+        } else {
+            body.innerHTML = '<tr id="emptyRow"><td colspan="6" class="empty-row">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+        }
+    } catch (err) {
+        body.innerHTML = '<tr id="emptyRow"><td colspan="6" class="empty-row">เชื่อมต่อ Google Sheets ไม่สำเร็จ ตรวจสอบลิงก์และการตั้งค่า Deploy</td></tr>';
+    } finally {
+        isLoading = false;
+    }
+}
+
+function loadRecord(id) {
+    const r = history.find(r => r.id === id);
+    if (!r) return;
+    document.getElementById('roomNo').value = r.roomNo;
+    document.getElementById('billingMonth').value = r.billingMonth;
+    document.getElementById('electOld').value = r.electOld;
+    document.getElementById('electNew').value = r.electNew;
+    document.getElementById('waterOld').value = r.waterOld;
+    document.getElementById('waterNew').value = r.waterNew;
+    document.getElementById('rent').value = r.rent;
+    document.getElementById('trash').value = r.trash;
+    calc();
+    showToast(`โหลดข้อมูลห้อง ${r.roomNo} แล้ว`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function printFromHistory(id) {
+    loadRecord(id);
+    setTimeout(printInvoice, 200);
+}
+
+function renderHistory() {
+    const body = document.getElementById('historyBody');
+    if (history.length === 0) {
+        body.innerHTML = '<tr id="emptyRow"><td colspan="6" class="empty-row">ยังไม่มีข้อมูลที่บันทึกไว้</td></tr>';
+        return;
+    }
+    body.innerHTML = history.map(r => `
+        <tr>
+            <td>${r.roomNo}</td>
+            <td>${getMonthLabel(r.billingMonth)}</td>
+            <td>${r.electOld} / ${r.electNew}</td>
+            <td>${r.waterOld} / ${r.waterNew}</td>
+            <td><strong>${fmt(r.total)} บาท</strong></td>
+            <td>
+                <button class="btn-print-row" onclick="printFromHistory(${r.id})">พิมพ์</button>
+                <button class="btn-del" onclick="deleteRecord(${r.id})">ลบ</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function printInvoice() {
+    const roomNo = document.getElementById('roomNo').value.trim() || '-';
+    const billingMonth = document.getElementById('billingMonth').value;
+    const data = calc();
+
+    document.getElementById('pRoomNo').textContent = roomNo;
+    document.getElementById('pMonth').textContent = getMonthLabel(billingMonth);
+    document.getElementById('pCurrentDate').textContent = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    document.getElementById('pElectUnit').textContent = data.electUsed;
+    document.getElementById('pElectOld').textContent = data.electOld;
+    document.getElementById('pElectNew').textContent = data.electNew;
+    document.getElementById('pElectCost').textContent = fmt(data.electCost);
+
+    document.getElementById('pWaterUnit').textContent = data.waterUsed;
+    document.getElementById('pWaterOld').textContent = data.waterOld;
+    document.getElementById('pWaterNew').textContent = data.waterNew;
+    document.getElementById('pWaterCost').textContent = fmt(data.waterCost);
+
+    document.getElementById('pRent').textContent = fmt(data.rent);
+    document.getElementById('pTrash').textContent = fmt(data.trash);
+    document.getElementById('pTotal').textContent = fmt(data.total);
+
+    window.print();
+}
+
+calc();
+loadHistory();
+</script>
+</body>
+</html>
